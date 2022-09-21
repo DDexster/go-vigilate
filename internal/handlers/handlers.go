@@ -127,10 +127,73 @@ func (repo *DBRepo) AllHosts(w http.ResponseWriter, r *http.Request) {
 
 // Host shows the host add/edit form
 func (repo *DBRepo) Host(w http.ResponseWriter, r *http.Request) {
-	err := helpers.RenderPage(w, r, "host", nil, nil)
+	hostID, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	var h models.Host
+	if hostID > 0 {
+		//	get host from db
+		hst, err := repo.DB.GetHostById(hostID)
+		if err != nil {
+			log.Println(err)
+			repo.App.Session.Put(r.Context(), "error", "Host Not Found")
+			http.Redirect(w, r, "/admin/host/all", http.StatusSeeOther)
+			return
+		}
+		h = hst
+	}
+
+	vars := make(jet.VarMap)
+	vars.Set("host", h)
+
+	err := helpers.RenderPage(w, r, "host", vars, nil)
 	if err != nil {
 		printTemplateError(w, err)
 	}
+}
+
+// PostHost handles submit host add/edit form
+func (repo *DBRepo) PostHost(w http.ResponseWriter, r *http.Request) {
+	hostID, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	var newHost models.Host
+	newHost.HostName = r.Form.Get("host_name")
+	newHost.CanonicalName = r.Form.Get("canonical_name")
+	newHost.URL = r.Form.Get("url")
+	newHost.IP = r.Form.Get("ip")
+	newHost.IPV6 = r.Form.Get("ipv6")
+	newHost.Location = r.Form.Get("location")
+	newHost.OS = r.Form.Get("os")
+	active, _ := strconv.Atoi(r.Form.Get("active"))
+	newHost.Active = active
+	log.Println("host id", hostID)
+	if hostID > 0 {
+		h, err := repo.DB.GetHostById(hostID)
+
+		log.Println(fmt.Sprintf("%+v", h))
+
+		if err != nil {
+			log.Println(err)
+			helpers.ServerError(w, r, err)
+			return
+		}
+		err = repo.DB.UpdateHost(newHost)
+		if err != nil {
+			log.Println(err)
+			helpers.ServerError(w, r, err)
+			return
+		}
+		//	get host from db
+	} else {
+		newId, err := repo.DB.InsertHost(newHost)
+		if err != nil {
+			log.Println(err)
+			helpers.ServerError(w, r, err)
+			return
+		}
+		hostID = newId
+	}
+
+	repo.App.Session.Put(r.Context(), "flash", "Changes Saved")
+
+	http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", hostID), http.StatusSeeOther)
 }
 
 // AllUsers lists all admin users
