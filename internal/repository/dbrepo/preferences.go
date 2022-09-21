@@ -2,7 +2,7 @@ package dbrepo
 
 import (
 	"context"
-	"github.com/tsawler/vigilate/internal/models"
+	"github.com/DDexster/go-vigilate/internal/models"
 	"log"
 	"time"
 )

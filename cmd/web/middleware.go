@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/DDexster/go-vigilate/internal/helpers"
 	"github.com/justinas/nosurf"
-	"github.com/tsawler/vigilate/internal/helpers"
 	"net/http"
 	"strconv"
 	"strings"

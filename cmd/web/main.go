@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/gob"
+	"github.com/DDexster/go-vigilate/internal/config"
+	"github.com/DDexster/go-vigilate/internal/handlers"
+	"github.com/DDexster/go-vigilate/internal/models"
 	"github.com/alexedwards/scs/v2"
 	"github.com/pusher/pusher-http-go"
-	"github.com/tsawler/vigilate/internal/config"
-	"github.com/tsawler/vigilate/internal/handlers"
-	"github.com/tsawler/vigilate/internal/models"
 	"log"
 	"net/http"
 	"os"

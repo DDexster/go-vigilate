@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/tsawler/vigilate/internal/helpers"
+	"github.com/DDexster/go-vigilate/internal/helpers"
 	"net/http"
 )
 

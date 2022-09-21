@@ -1,4 +1,4 @@
-module github.com/tsawler/vigilate
+module github.com/DDexster/go-vigilate
 
 go 1.15
 

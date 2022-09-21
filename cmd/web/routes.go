@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/DDexster/go-vigilate/internal/handlers"
 	"github.com/go-chi/chi"
-	"github.com/tsawler/vigilate/internal/handlers"
 	"net/http"
 )
 

@@ -1,11 +1,11 @@
 package config
 
 import (
+	"github.com/DDexster/go-vigilate/internal/channeldata"
+	"github.com/DDexster/go-vigilate/internal/driver"
 	"github.com/alexedwards/scs/v2"
 	"github.com/pusher/pusher-http-go"
 	"github.com/robfig/cron/v3"
-	"github.com/tsawler/vigilate/internal/channeldata"
-	"github.com/tsawler/vigilate/internal/driver"
 	"html/template"
 )
 

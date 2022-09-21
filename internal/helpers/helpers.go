@@ -3,10 +3,10 @@ package helpers
 import (
 	"fmt"
 	"github.com/CloudyKit/jet/v6"
+	"github.com/DDexster/go-vigilate/internal/config"
+	"github.com/DDexster/go-vigilate/internal/models"
+	"github.com/DDexster/go-vigilate/internal/templates"
 	"github.com/justinas/nosurf"
-	"github.com/tsawler/vigilate/internal/config"
-	"github.com/tsawler/vigilate/internal/models"
-	"github.com/tsawler/vigilate/internal/templates"
 	"log"
 	"math/rand"
 	"net/http"
