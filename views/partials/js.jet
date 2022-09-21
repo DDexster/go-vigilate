@@ -1,0 +1,21 @@
+<script src="/static/admin/js/pusher.min.js"></script>
+<script src="/static/admin/js/pusher-service.js"></script>
+
+<script>
+  const pusherKey = '{{.PreferenceMap["pusher-key"]}}';
+  initPusher(pusherKey);
+
+  let attention = Prompt();
+
+  {{if .Flash != ""}}
+      successAlert('{{.Flash}}')
+  {{end}}
+
+  {{if .Warning != ""}}
+      warningAlert('{{.Warning}}')
+  {{end}}
+
+  {{if .Error != ""}}
+      errorAlert('{{.Error}}')
+  {{end}}
+</script>
