@@ -43,19 +43,37 @@ func NewPostgresqlHandlers(db *driver.DB, a *config.AppConfig) *DBRepo {
 
 // AdminDashboard displays the dashboard
 func (repo *DBRepo) AdminDashboard(w http.ResponseWriter, r *http.Request) {
-	vars := make(jet.VarMap)
-	vars.Set("no_healthy", 0)
-	vars.Set("no_problem", 0)
-	vars.Set("no_pending", 0)
-	vars.Set("no_warning", 0)
-
 	hosts, err := repo.DB.GetAllHosts()
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
+	var healthy, problem, pending, warning int
+
+	for _, h := range hosts {
+		if h.Active == 1 {
+			for _, hs := range h.HostServices {
+				switch hs.Status {
+				case "pending":
+					pending += 1
+				case "healthy":
+					healthy += 1
+				case "problem":
+					problem += 1
+				case "warning":
+					warning += 1
+				}
+			}
+		}
+	}
+
+	vars := make(jet.VarMap)
 	vars.Set("hosts", hosts)
+	vars.Set("no_healthy", healthy)
+	vars.Set("no_problem", problem)
+	vars.Set("no_pending", pending)
+	vars.Set("no_warning", warning)
 
 	err = helpers.RenderPage(w, r, "dashboard", vars, nil)
 	if err != nil {

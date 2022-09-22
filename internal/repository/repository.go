@@ -27,4 +27,5 @@ type DatabaseRepo interface {
 	InsertHost(h models.Host) (int, error)
 	UpdateHost(h models.Host) error
 	UpdateHostServiceStatus(hostId, serviceId, active int) error
+	GetHostServicesByStatus(status string) ([]models.HostService, error)
 }
