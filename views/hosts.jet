@@ -48,7 +48,11 @@
         <td>
           <a href="/admin/host/{{.ID}}">{{.HostName}}</a>
         </td>
-        <td></td>
+        <td>
+            {{range .HostServices}}
+              <span class="badge bg-info">{{.Service.ServiceName}}</span>
+            {{end}}
+        </td>
         <td>{{.OS}}</td>
         <td>{{.Location}}</td>
         <td>

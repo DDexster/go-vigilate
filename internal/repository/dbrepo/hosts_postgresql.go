@@ -13,7 +13,8 @@ func (m *postgresDBRepo) GetAllHosts() ([]models.Host, error) {
 	defer cancel()
 
 	stmt := `SELECT id, host_name, canonical_name, url, ip, ipv6, location, os, active, created_at, updated_at 
-	FROM hosts ORDER BY host_name`
+	FROM hosts 
+	ORDER BY host_name`
 
 	rows, err := m.DB.QueryContext(ctx, stmt)
 	if err != nil {
@@ -44,6 +45,51 @@ func (m *postgresDBRepo) GetAllHosts() ([]models.Host, error) {
 			log.Println(err)
 			return nil, err
 		}
+
+		serviceQuery := `SELECT hs.id, hs.host_id, hs.service_id, hs.active, hs.schedule_number, hs.schedule_unit, hs.last_check, hs.status, hs.created_at, hs.updated_at, 
+       s.id, s.service_name, s.active, s.icon, s.created_at, s.updated_at
+		FROM host_services AS hs
+		LEFT JOIN services AS s ON (hs.service_id = s.id)
+		WHERE hs.host_id = $1`
+
+		serviceRows, err := m.DB.QueryContext(ctx, serviceQuery, h.ID)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		var hostServices []models.HostService
+
+		for serviceRows.Next() {
+			var hs models.HostService
+			err = serviceRows.Scan(
+				&hs.ID,
+				&hs.HostID,
+				&hs.ServiceID,
+				&hs.Active,
+				&hs.ScheduleNumber,
+				&hs.ScheduleUnit,
+				&hs.LastCheck,
+				&hs.Status,
+				&hs.CreatedAt,
+				&hs.UpdatedAt,
+				&hs.Service.ID,
+				&hs.Service.ServiceName,
+				&hs.Service.Active,
+				&hs.Service.Icon,
+				&hs.Service.CreatedAt,
+				&hs.Service.UpdatedAt,
+			)
+
+			if err != nil {
+				log.Println(err)
+				return nil, err
+			}
+
+			hostServices = append(hostServices, hs)
+		}
+
+		h.HostServices = hostServices
 
 		hosts = append(hosts, *h)
 	}
