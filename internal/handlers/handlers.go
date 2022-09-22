@@ -119,7 +119,16 @@ func (repo *DBRepo) PostSettings(w http.ResponseWriter, r *http.Request) {
 
 // AllHosts displays list of all hosts
 func (repo *DBRepo) AllHosts(w http.ResponseWriter, r *http.Request) {
-	err := helpers.RenderPage(w, r, "hosts", nil, nil)
+	hosts, err := repo.DB.GetAllHosts()
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	vars := make(jet.VarMap)
+	vars.Set("hosts", hosts)
+
+	err = helpers.RenderPage(w, r, "hosts", vars, nil)
 	if err != nil {
 		printTemplateError(w, err)
 	}
@@ -154,6 +163,18 @@ func (repo *DBRepo) Host(w http.ResponseWriter, r *http.Request) {
 func (repo *DBRepo) PostHost(w http.ResponseWriter, r *http.Request) {
 	hostID, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	var newHost models.Host
+
+	if hostID > 0 {
+		h, err := repo.DB.GetHostById(hostID)
+		if err != nil {
+			log.Println(err)
+			helpers.ServerError(w, r, err)
+			return
+		}
+
+		newHost = h
+	}
+
 	newHost.HostName = r.Form.Get("host_name")
 	newHost.CanonicalName = r.Form.Get("canonical_name")
 	newHost.URL = r.Form.Get("url")
@@ -163,18 +184,12 @@ func (repo *DBRepo) PostHost(w http.ResponseWriter, r *http.Request) {
 	newHost.OS = r.Form.Get("os")
 	active, _ := strconv.Atoi(r.Form.Get("active"))
 	newHost.Active = active
+
 	log.Println("host id", hostID)
+	log.Println("host active", active)
+
 	if hostID > 0 {
-		h, err := repo.DB.GetHostById(hostID)
-
-		log.Println(fmt.Sprintf("%+v", h))
-
-		if err != nil {
-			log.Println(err)
-			helpers.ServerError(w, r, err)
-			return
-		}
-		err = repo.DB.UpdateHost(newHost)
+		err := repo.DB.UpdateHost(newHost)
 		if err != nil {
 			log.Println(err)
 			helpers.ServerError(w, r, err)
@@ -188,12 +203,12 @@ func (repo *DBRepo) PostHost(w http.ResponseWriter, r *http.Request) {
 			helpers.ServerError(w, r, err)
 			return
 		}
-		hostID = newId
+		newHost.ID = newId
 	}
 
 	repo.App.Session.Put(r.Context(), "flash", "Changes Saved")
 
-	http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", hostID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", newHost.ID), http.StatusSeeOther)
 }
 
 // AllUsers lists all admin users

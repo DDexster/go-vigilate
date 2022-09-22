@@ -121,7 +121,7 @@
               </div>
 
               <div class="form-check form-switch mt-4">
-                <input class="form-check-input" type="checkbox" id="active" name="active" value="{{host.Active}}">
+                <input class="form-check-input" type="checkbox" id="active" name="active" value="1" {{if host.Active == 1}} checked {{end}}>
                 <label id="monitoring-live-label" class="form-check-label" for="active">Active</label>
               </div>
 
