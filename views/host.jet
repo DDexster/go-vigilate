@@ -38,7 +38,7 @@
           <a class="nav-link active" href="#host-content" data-target="" data-toggle="tab"
              id="host-tab" role="tab">Host</a>
         </li>
-        {{if host.ID > 0}}
+          {{if host.ID > 0}}
         <li class="nav-item">
           <a class="nav-link" href="#services-content" data-target="" data-toggle="tab"
              id="services-tab" role="tab">Manage Services</a>
@@ -59,7 +59,7 @@
           <a class="nav-link" href="#pending-content" data-target="" data-toggle="tab"
              id="pending-tab" role="tab">Pending</a>
         </li>
-        {{end}}
+          {{end}}
       </ul>
 
       <div class="tab-content pt-3" id="content-tabs" style="min-height: 55vh">
@@ -72,14 +72,16 @@
                 <label for="host_name" class="form-label">
                   Host Name
                 </label>
-                <input type="text" id="host_name" name="host_name" value="{{host.HostName}}" class="form-control" required/>
+                <input type="text" id="host_name" name="host_name" value="{{host.HostName}}" class="form-control"
+                       required/>
               </div>
 
               <div class="mb-3">
                 <label for="canonical_name" class="form-label">
                   Canonical Name
                 </label>
-                <input type="text" id="canonical_name" name="canonical_name" value="{{host.CanonicalName}}" class="form-control" required/>
+                <input type="text" id="canonical_name" name="canonical_name" value="{{host.CanonicalName}}"
+                       class="form-control" required/>
               </div>
 
               <div class="mb-3">
@@ -121,7 +123,8 @@
               </div>
 
               <div class="form-check form-switch mt-4">
-                <input class="form-check-input" type="checkbox" id="active" name="active" value="1" {{if host.Active == 1}} checked {{end}}>
+                <input class="form-check-input" type="checkbox" id="active" name="active"
+                       value="1" {{if host.Active == 1}} checked {{end}}>
                 <label id="monitoring-live-label" class="form-check-label" for="active">Active</label>
               </div>
 
@@ -147,7 +150,40 @@
         </div>
 
         <div class="tab-pane fade" role="tabpanel" aria-labelledby="services-tab" id="services-content">
-          Manage Services Content
+          <div class="row">
+            <div class="col">
+              <h3>Services</h3>
+              <table class="table table-striped mt-3">
+                <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{range host.HostServices}}
+                <tr>
+                  <td>{{.Service.ServiceName}}</td>
+                  <td>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input"
+                             type="checkbox"
+                             name="{{.Service.ServiceName}}"
+                             value="1"
+                             data-service="{{.ServiceID}}"
+                             data-host-id="{{.HostID}}"
+                             data-type="toggle-service"
+                              {{if .Active == 1}} checked {{end}}
+                      >
+                      <label id="monitoring-service-label" class="form-check-label" for="http">Active</label>
+                    </div>
+                  </td>
+                </tr>
+                {{end}}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <div class="tab-pane fade" role="tabpanel" aria-labelledby="healthy-tab" id="healthy-content">
@@ -175,6 +211,8 @@
 
 {{ block js() }}
 <script>
+  const token = "{{.CSRFToken}}";
+
   function saveClose() {
     document.getElementById("action").value = 1;
     const form = document.getElementById("host-form");
@@ -204,6 +242,32 @@
       form.submit();
     }
   }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const toggles = document.querySelectorAll("[data-service]");
+
+    toggles.forEach(t => {
+      t.addEventListener("change", function () {
+        let formData = new FormData();
+        formData.append('host_id', this.getAttribute('data-host-id'));
+        formData.append('service_id', this.getAttribute('data-service'));
+        formData.append('csrf_token', token);
+        formData.append('active', this.checked ? "1" : "0");
+        fetch(`/admin/host/ajax/toggle-service`, { method: 'POST', body: formData })
+          .then(res => res.json())
+          .then(data => {
+            if (data.ok) {
+              successAlert("Service Status Updated!")
+            } else {
+              errorAlert("Failed to update Service Status")
+            }
+          })
+          .catch(e => {
+            errorAlert(e.message)
+          })
+      });
+    });
+  })
 </script>
 
 {{end}}

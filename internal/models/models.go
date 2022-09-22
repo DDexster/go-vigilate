@@ -51,6 +51,7 @@ type Host struct {
 	Location      string
 	OS            string
 	Active        int
+	HostServices  []HostService
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
@@ -77,4 +78,5 @@ type HostService struct {
 	LastCheck      time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	Service        Service
 }

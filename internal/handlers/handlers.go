@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/CloudyKit/jet/v6"
 	"github.com/DDexster/go-vigilate/internal/config"
@@ -207,8 +208,40 @@ func (repo *DBRepo) PostHost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo.App.Session.Put(r.Context(), "flash", "Changes Saved")
+	action := r.Form.Get("action")
+	redirectUrl := fmt.Sprintf("/admin/host/%d", newHost.ID)
+	if action == "1" {
+		redirectUrl = "/admin/host/all"
+	}
+	http.Redirect(w, r, redirectUrl, http.StatusSeeOther)
+}
 
-	http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", newHost.ID), http.StatusSeeOther)
+type serviceJson struct {
+	OK bool `json:"ok"`
+}
+
+func (repo *DBRepo) ToggleHostService(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Println(err)
+	}
+	hostId, _ := strconv.Atoi(r.Form.Get("host_id"))
+	serviceId, _ := strconv.Atoi(r.Form.Get("service_id"))
+	active, _ := strconv.Atoi(r.Form.Get("active"))
+
+	response := serviceJson{
+		OK: true,
+	}
+
+	err = repo.DB.UpdateHostServiceStatus(hostId, serviceId, active)
+	if err != nil {
+		log.Println(err)
+		response.OK = false
+	}
+
+	out, _ := json.MarshalIndent(response, "", "  ")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(out)
 }
 
 // AllUsers lists all admin users
