@@ -292,7 +292,8 @@ func (m *postgresDBRepo) GetHostServicesByStatus(status string) ([]models.HostSe
 		FROM host_services AS hs
 		LEFT JOIN hosts AS h ON (hs.host_id = h.id)
 		LEFT JOIN services AS s ON (hs.service_id = s.id)
-		WHERE hs.status = $1 AND hs.active = 1`
+		WHERE hs.status = $1 AND hs.active = 1
+		ORDER BY h.host_name, s.service_name`
 
 	rows, err := m.DB.QueryContext(ctx, stmt, status)
 	if err != nil {
@@ -333,4 +334,69 @@ func (m *postgresDBRepo) GetHostServicesByStatus(status string) ([]models.HostSe
 	}
 
 	return services, nil
+}
+
+func (m *postgresDBRepo) GetHostServiceById(id int) (models.HostService, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	stmt := `SELECT hs.id, hs.host_id, hs.service_id, hs.active, hs.schedule_number, hs.schedule_unit, hs.last_check, hs.status, hs.created_at, hs.updated_at, 
+       s.id, s.service_name, s.active, s.icon, s.created_at, s.updated_at
+		FROM host_services AS hs
+		LEFT JOIN services AS s ON (hs.service_id = s.id)
+		WHERE hs.id = $1`
+
+	var hs models.HostService
+
+	row := m.DB.QueryRowContext(ctx, stmt, id)
+	err := row.Scan(
+		&hs.ID,
+		&hs.HostID,
+		&hs.ServiceID,
+		&hs.Active,
+		&hs.ScheduleNumber,
+		&hs.ScheduleUnit,
+		&hs.LastCheck,
+		&hs.Status,
+		&hs.CreatedAt,
+		&hs.UpdatedAt,
+		&hs.Service.ID,
+		&hs.Service.ServiceName,
+		&hs.Service.Active,
+		&hs.Service.Icon,
+		&hs.Service.CreatedAt,
+		&hs.Service.UpdatedAt,
+	)
+
+	if err != nil {
+		log.Println(err)
+		return hs, err
+	}
+
+	return hs, nil
+}
+
+func (m *postgresDBRepo) UpdateHostService(hs models.HostService) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	stmt := `UPDATE host_services
+  	SET host_id = $1,
+				service_id = $2,
+				active = $3,
+				schedule_number = $4,
+				schedule_unit = $5,
+				last_check = $6,
+				status = $7,
+				updated_at = $8
+		WHERE id = $9`
+
+	_, err := m.DB.ExecContext(ctx, stmt, hs.HostID, hs.ServiceID, hs.Active, hs.ScheduleNumber, hs.ScheduleUnit, hs.LastCheck, hs.Status, time.Now(), hs.ID)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }
