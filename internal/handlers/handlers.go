@@ -10,7 +10,7 @@ import (
 	"github.com/DDexster/go-vigilate/internal/models"
 	"github.com/DDexster/go-vigilate/internal/repository"
 	"github.com/DDexster/go-vigilate/internal/repository/dbrepo"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 	"runtime/debug"
@@ -142,6 +142,70 @@ func (repo *DBRepo) PostSettings(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
 	}
+}
+
+func (repo *DBRepo) UpdateSystemPreference(w http.ResponseWriter, r *http.Request) {
+	resp := jsonResponse{
+		OK:      false,
+		Message: "Failed to update system preference",
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err := r.ParseForm()
+	if err != nil {
+		log.Println(err)
+		resp.Message = "Failed to parse form" + err.Error()
+		out, _ := json.MarshalIndent(resp, "", " ")
+		w.Write(out)
+		return
+	}
+
+	prefName := r.Form.Get("pref_name")
+	prefValue := r.Form.Get("pref_value")
+
+	err = repo.DB.UpdateSystemPref(prefName, prefValue)
+	if err != nil {
+		resp.Message = "Failed to update preference" + err.Error()
+		out, _ := json.MarshalIndent(resp, "", " ")
+		w.Write(out)
+		return
+	}
+	repo.App.PreferenceMap[prefName] = prefValue
+
+	resp.OK = true
+	resp.Message = "Updated Successfully"
+	out, _ := json.MarshalIndent(resp, "", " ")
+	w.Write(out)
+}
+
+func (repo *DBRepo) ToggleMonitoring(w http.ResponseWriter, r *http.Request) {
+	active := r.Form.Get("active")
+
+	if active == "1" {
+		log.Println("Turning Monitoring on...")
+		repo.StartMonitoring()
+		repo.App.Scheduler.Start()
+	} else {
+		log.Println("Turning Monitoring off...")
+
+		for _, v := range repo.App.MonitorMap {
+			repo.App.Scheduler.Remove(v)
+		}
+		for k := range repo.App.MonitorMap {
+			delete(repo.App.MonitorMap, k)
+		}
+		// delete all entries from scheduler
+		for _, i := range repo.App.Scheduler.Entries() {
+			repo.App.Scheduler.Remove(i.ID)
+		}
+		repo.App.Scheduler.Stop()
+	}
+
+	resp := jsonResponse{
+		OK: true,
+	}
+
+	out, _ := json.MarshalIndent(resp, "", " ")
+	w.Write(out)
 }
 
 // AllHosts displays list of all hosts

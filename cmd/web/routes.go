@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/DDexster/go-vigilate/internal/handlers"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
@@ -43,6 +43,10 @@ func routes() http.Handler {
 		// settings
 		mux.Get("/settings", handlers.Repo.Settings)
 		mux.Post("/settings", handlers.Repo.PostSettings)
+
+		// preferences
+		mux.Post("/preference/ajax/update", handlers.Repo.UpdateSystemPreference)
+		mux.Post("/preference/ajax/toggle-monitoring", handlers.Repo.ToggleMonitoring)
 
 		// service status pages (all hosts)
 		mux.Get("/all-healthy", handlers.Repo.AllHealthyServices)

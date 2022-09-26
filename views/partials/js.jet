@@ -7,16 +7,17 @@
 
   let attention = Prompt();
 
-  {{if .Flash != ""}}
-      successAlert('{{.Flash}}')
+  {{if .Flash !=
+  ""}}
+  successAlert('{{.Flash}}')
   {{end}}
 
-  {{if .Warning != ""}}
-      warningAlert('{{.Warning}}')
+  {{if .Warning  != ""}}
+  warningAlert('{{.Warning}}')
   {{end}}
 
-  {{if .Error != ""}}
-      errorAlert('{{.Error}}')
+  {{if .Error  != ""}}
+  errorAlert('{{.Error}}')
   {{end}}
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -44,4 +45,63 @@
       }
     }
   });
+
+  monitoringToggle = document.getElementById("monitoring-live")
+  if (monitoringToggle) {
+    monitoringToggle.addEventListener("change", function () {
+      if (!this.checked) {
+        attention.confirm({
+          html: 'This will disable services monitoring schedule. Are You Sure?',
+          callback: (result) => {
+            if (result) {
+              updateSystemPref("monitoring_live", "0").then(() => toggleMonitoring(this.checked))
+            } else {
+              this.checked = true
+            }
+          }
+        })
+      } else {
+        updateSystemPref("monitoring_live", "1").then(() => toggleMonitoring(this.checked))
+      }
+    });
+  }
+
+  function toggleMonitoring(active) {
+    const token = "{{.CSRFToken}}";
+    const formData = new FormData();
+    formData.append('csrf_token', token);
+    formData.append('active', active ? "1" : "0");
+    fetch(`/admin/preference/ajax/toggle-monitoring`, { method: 'POST', body: formData })
+      .then(res => res.json())
+      .then(dt => {
+        if (!dt.ok) {
+          errorAlert(dt.message)
+        }
+      })
+      .catch(e => {
+        errorAlert(e.message)
+      });
+  }
+
+  function updateSystemPref(prefName, prefValue){
+    return new Promise((resolve) => {
+      const token = "{{.CSRFToken}}";
+      const formData = new FormData();
+      formData.append('csrf_token', token);
+      formData.append('pref_name', prefName);
+      formData.append('pref_value', prefValue);
+      fetch(`/admin/preference/ajax/update`, { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(dt => {
+          if (!dt.ok) {
+            errorAlert('Errors:', dt.message)
+          }
+          resolve()
+        })
+        .catch(e => {
+          errorAlert(e.message)
+          resolve()
+        });
+    })
+  }
 </script>

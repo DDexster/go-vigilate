@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/DDexster/go-vigilate/internal/models"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 	"strconv"
@@ -27,6 +27,10 @@ type jsonResponse struct {
 	OldStatus     string    `json:"old_status"`
 	NewStatus     string    `json:"new_status"`
 	LastCheck     time.Time `json:"last_check"`
+}
+
+func (repo *DBRepo) ScheduledCheck(hsID int) {
+
 }
 
 func (repo *DBRepo) TestCheck(w http.ResponseWriter, r *http.Request) {

@@ -11,6 +11,7 @@ import (
 	"github.com/alexedwards/scs/postgresstore"
 	"github.com/alexedwards/scs/v2"
 	"github.com/pusher/pusher-http-go"
+	"github.com/robfig/cron/v3"
 	"log"
 	"net/http"
 	"os"
@@ -137,6 +138,18 @@ func setupApp() (*string, error) {
 	log.Println("Secure", *pusherSecure)
 
 	app.WsClient = wsClient
+
+	localZone, _ := time.LoadLocation("Local")
+	scheduler := cron.New(cron.WithLocation(localZone), cron.WithChain(
+		cron.DelayIfStillRunning(cron.DefaultLogger),
+		cron.Recover(cron.DefaultLogger),
+	))
+
+	app.MonitorMap = make(map[int]cron.EntryID)
+
+	app.Scheduler = scheduler
+
+	go handlers.Repo.StartMonitoring()
 
 	helpers.NewHelpers(&app)
 

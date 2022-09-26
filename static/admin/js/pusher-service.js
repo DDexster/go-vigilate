@@ -13,4 +13,13 @@ function initPusher(pusherKey) {
   publicChannel.bind("test-event", (data) => {
     successAlert(data.message);
   })
+
+  publicChannel.bind("app-started", (data) => {
+  })
+
+  publicChannel.bind("next-run-event", (data) => {
+  })
+
+  publicChannel.bind("schedule-changed-event", (data) => {
+  })
 }
