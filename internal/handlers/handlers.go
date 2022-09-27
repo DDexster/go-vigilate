@@ -41,6 +41,36 @@ func NewPostgresqlHandlers(db *driver.DB, a *config.AppConfig) *DBRepo {
 	}
 }
 
+func (repo *DBRepo) GetServiceCounts(hosts *[]models.Host) models.ServiceStatusCount {
+	var counts models.ServiceStatusCount
+	if hosts != nil {
+		for _, h := range *hosts {
+			if h.Active == 1 {
+				for _, hs := range h.HostServices {
+					switch hs.Status {
+					case "pending":
+						counts.Pending += 1
+					case "healthy":
+						counts.Healthy += 1
+					case "problem":
+						counts.Problem += 1
+					case "warning":
+						counts.Warning += 1
+					}
+				}
+			}
+		}
+	} else {
+		cts, err := repo.DB.GetAllServiceStatusCounts()
+		if err != nil {
+			log.Println(err)
+			return counts
+		}
+		counts = cts
+	}
+	return counts
+}
+
 // AdminDashboard displays the dashboard
 func (repo *DBRepo) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	hosts, err := repo.DB.GetAllHosts()
@@ -49,31 +79,14 @@ func (repo *DBRepo) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var healthy, problem, pending, warning int
-
-	for _, h := range hosts {
-		if h.Active == 1 {
-			for _, hs := range h.HostServices {
-				switch hs.Status {
-				case "pending":
-					pending += 1
-				case "healthy":
-					healthy += 1
-				case "problem":
-					problem += 1
-				case "warning":
-					warning += 1
-				}
-			}
-		}
-	}
+	counts := repo.GetServiceCounts(&hosts)
 
 	vars := make(jet.VarMap)
 	vars.Set("hosts", hosts)
-	vars.Set("no_healthy", healthy)
-	vars.Set("no_problem", problem)
-	vars.Set("no_pending", pending)
-	vars.Set("no_warning", warning)
+	vars.Set("no_healthy", counts.Healthy)
+	vars.Set("no_problem", counts.Problem)
+	vars.Set("no_pending", counts.Pending)
+	vars.Set("no_warning", counts.Warning)
 
 	err = helpers.RenderPage(w, r, "dashboard", vars, nil)
 	if err != nil {
@@ -182,11 +195,12 @@ func (repo *DBRepo) ToggleMonitoring(w http.ResponseWriter, r *http.Request) {
 
 	if active == "1" {
 		log.Println("Turning Monitoring on...")
+		repo.App.PreferenceMap["monitoring_live"] = "1"
 		repo.StartMonitoring()
 		repo.App.Scheduler.Start()
 	} else {
 		log.Println("Turning Monitoring off...")
-
+		repo.App.PreferenceMap["monitoring_live"] = "0"
 		for _, v := range repo.App.MonitorMap {
 			repo.App.Scheduler.Remove(v)
 		}
@@ -198,6 +212,14 @@ func (repo *DBRepo) ToggleMonitoring(w http.ResponseWriter, r *http.Request) {
 			repo.App.Scheduler.Remove(i.ID)
 		}
 		repo.App.Scheduler.Stop()
+		data := make(map[string]string)
+		data["message"] = "Monitoring is stopped"
+
+		// trigger message to broadcast to all clients
+		err := app.WsClient.Trigger("public-channel", "app-stopped", data)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	resp := jsonResponse{

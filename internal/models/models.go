@@ -16,6 +16,13 @@ var (
 	ErrInactiveAccount = errors.New("models: Inactive Account")
 )
 
+type ServiceStatusCount struct {
+	Healthy int
+	Problem int
+	Warning int
+	Pending int
+}
+
 // User model
 type User struct {
 	ID          int

@@ -457,3 +457,30 @@ func (m *postgresDBRepo) GetServicesToMonitor() ([]models.HostService, error) {
 
 	return services, nil
 }
+
+func (m *postgresDBRepo) GetAllServiceStatusCounts() (models.ServiceStatusCount, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+	SELECT 
+		(SELECT count(id) FROM host_services WHERE active = 1 AND status = 'pending') as pending,
+		(SELECT count(id) FROM host_services WHERE active = 1 AND status = 'healthy') as healthy,
+		(SELECT count(id) FROM host_services WHERE active = 1 AND status = 'warning') as warning,
+		(SELECT count(id) FROM host_services WHERE active = 1 AND status = 'problem') as problem`
+
+	var counts models.ServiceStatusCount
+
+	row := m.DB.QueryRowContext(ctx, query)
+	err := row.Scan(
+		&counts.Pending,
+		&counts.Healthy,
+		&counts.Warning,
+		&counts.Problem,
+	)
+	if err != nil {
+		return counts, err
+	}
+
+	return counts, nil
+}

@@ -1,6 +1,8 @@
 package repository
 
-import "github.com/DDexster/go-vigilate/internal/models"
+import (
+	"github.com/DDexster/go-vigilate/internal/models"
+)
 
 // DatabaseRepo is the database repository
 type DatabaseRepo interface {
@@ -32,4 +34,5 @@ type DatabaseRepo interface {
 	GetHostServiceById(id int) (models.HostService, error)
 	UpdateHostService(hs models.HostService) error
 	GetServicesToMonitor() ([]models.HostService, error)
+	GetAllServiceStatusCounts() (models.ServiceStatusCount, error)
 }

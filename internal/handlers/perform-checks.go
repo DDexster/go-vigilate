@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/DDexster/go-vigilate/internal/helpers"
 	"github.com/DDexster/go-vigilate/internal/models"
 	"github.com/go-chi/chi/v5"
 	"log"
@@ -30,7 +31,39 @@ type jsonResponse struct {
 }
 
 func (repo *DBRepo) ScheduledCheck(hsID int) {
+	log.Println(fmt.Sprintf("***** Running check for %d host service", hsID))
 
+	hs, err := repo.DB.GetHostServiceById(hsID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	h, err := repo.DB.GetHostById(hs.HostID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	newStatus, msg := repo.testServiceHost(h, hs)
+
+	// update hs time check and status
+	statusChanged := hs.Status != newStatus
+	hs.Status = newStatus
+	hs.LastCheck = time.Now()
+
+	err = repo.DB.UpdateHostService(hs)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	if statusChanged {
+		updateMessage := fmt.Sprintf("Host service %s on %s is changed to %s, message: %s", hs.Service.ServiceName, h.HostName, newStatus, msg)
+		repo.updateServiceStatusCount(updateMessage)
+
+		//	TODO alert user via email or sms
+	}
 }
 
 func (repo *DBRepo) TestCheck(w http.ResponseWriter, r *http.Request) {
@@ -102,6 +135,22 @@ func (repo *DBRepo) testServiceHost(h models.Host, hs models.HostService) (strin
 		break
 	}
 
+	if hs.Status != newStatus {
+		data := make(map[string]string)
+		data["host_service_id"] = strconv.Itoa(hs.ID)
+		data["host_id"] = strconv.Itoa(h.ID)
+		data["service_id"] = strconv.Itoa(hs.ServiceID)
+		data["host_name"] = h.HostName
+		data["service_name"] = hs.Service.ServiceName
+		data["icon"] = hs.Service.Icon
+		data["status"] = newStatus
+		data["last_check"] = helpers.FormatDateWithLayout(time.Now(), helpers.DATE_FORMAT)
+		data["message"] = fmt.Sprintf("%s on %s reports %s", hs.Service.ServiceName, h.HostName, newStatus)
+
+		repo.broadcastMessage("public-channel", "host-service-status-change", data)
+
+		// TODO send email or sms if appropriate
+	}
 	return newStatus, msg
 }
 
@@ -123,4 +172,25 @@ func testHTTPForHost(url string) (string, string) {
 	}
 
 	return fmt.Sprintf("%s - %s", url, resp.Status), "healthy"
+}
+
+func (repo *DBRepo) broadcastMessage(channel, event string, data map[string]string) {
+	err := app.WsClient.Trigger(channel, event, data)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (repo *DBRepo) updateServiceStatusCount(message string) {
+	log.Println(message)
+
+	//	broadcast to all clients
+	data := make(map[string]string)
+	counts := repo.GetServiceCounts(nil)
+	data["message"] = fmt.Sprintf(message)
+	data["healthy_count"] = strconv.Itoa(counts.Healthy)
+	data["pending_count"] = strconv.Itoa(counts.Pending)
+	data["problem_count"] = strconv.Itoa(counts.Problem)
+	data["warning_count"] = strconv.Itoa(counts.Warning)
+	repo.broadcastMessage("public-channel", "hs-count-changed", data)
 }

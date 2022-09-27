@@ -2,6 +2,8 @@ package helpers
 
 import "time"
 
+const DATE_FORMAT = "15:04 02-01-2006"
+
 func addTemplateFunctions() {
 	views.AddGlobal("humanDate", func(t time.Time) string {
 		return HumanDate(t)

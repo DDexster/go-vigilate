@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/DDexster/go-vigilate/internal/helpers"
 	"log"
 	"strconv"
 	"time"
@@ -22,10 +23,7 @@ func (repo *DBRepo) StartMonitoring() {
 		data["message"] = "Monitoring is starting..."
 
 		// trigger message to broadcast to all clients
-		err := app.WsClient.Trigger("public-channel", "app-started", data)
-		if err != nil {
-			log.Println(err)
-		}
+		repo.broadcastMessage("public-channel", "app-started", data)
 
 		// get all services that we want to monitor
 		servicesToMonitor, err := repo.DB.GetServicesToMonitor()
@@ -58,30 +56,22 @@ func (repo *DBRepo) StartMonitoring() {
 			payload["message"] = "scheduling"
 			payload["host_service_id"] = strconv.Itoa(hs.ID)
 			yearOne := time.Date(001, 11, 17, 23, 32, 23, 432322, time.UTC)
-			df := "2006-01-02 3:04:05 PM"
 			if app.Scheduler.Entry(app.MonitorMap[hs.ID]).Next.After(yearOne) {
-				payload["next_run"] = app.Scheduler.Entry(app.MonitorMap[hs.ID]).Next.Format(df)
+				payload["next_run"] = app.Scheduler.Entry(app.MonitorMap[hs.ID]).Next.Format(helpers.DATE_FORMAT)
 			} else {
 				payload["next_run"] = "Pending..."
 			}
 			payload["host"] = hs.HostName
 			payload["service"] = hs.Service.ServiceName
 			if hs.LastCheck.After(yearOne) {
-				payload["last_run"] = hs.LastCheck.Format(df)
+				payload["last_run"] = hs.LastCheck.Format(helpers.DATE_FORMAT)
 			} else {
 				payload["last_run"] = "Pending..."
 			}
 			payload["schedule"] = sch
 
-			err = app.WsClient.Trigger("public-channel", "next-run-event", payload)
-			if err != nil {
-				log.Println(err)
-			}
-
-			err = app.WsClient.Trigger("public-channel", "schedule-changed-event", payload)
-			if err != nil {
-				log.Println(err)
-			}
+			repo.broadcastMessage("public-channel", "next-run-event", payload)
+			repo.broadcastMessage("public-channel", "schedule-changed-event", payload)
 		}
 	}
 }
