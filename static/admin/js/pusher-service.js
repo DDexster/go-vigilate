@@ -1,3 +1,5 @@
+const tableNames = ['healthy', 'warning', 'problem', 'pending'];
+
 function initPusher(pusherKey) {
   const pusher = new Pusher(pusherKey, {
     authEndPoint: '/pusher/auth',
@@ -36,32 +38,12 @@ function initPusher(pusherKey) {
       showCloseButton: true
     });
 
-    //   remove table row if it exist
-    const tr = document.getElementById(`host-service-tr-${data.host_service_id}`)
-    if (tr) {
-      tr.parentNode.removeChild(tr);
-    }
+    // Update Host Page
+    removeHostTableTr(data.host_service_id);
 
     //  update tables if they exist
-    const table = document.getElementById(`${data.status}-table`);
-    if (table) {
-      const trHtml = `
-      <td>
-        <i class="${data.icon}"></i>
-        ${data.service_name}
-        <span class="badge bg-secondary clicker-badge" onclick="checkNow(${data.host_service_id}, '${data.status}')">
-          Check Now
-        </span>
-      </td>
-      <td>
-        ${data.last_check}
-      </td>
-      <td>${data.service_name}</td>
-      `;
-      const tr = table.tBodies[0].insertRow(-1);
-      tr.setAttribute('id', `host-service-tr-${data.host_service_id}`);
-      tr.innerHTML = trHtml;
-    }
+    addHostTableRow(data);
+  //  Update Status pages
   })
 
   publicChannel.bind("hs-count-changed", (data) => {
@@ -86,6 +68,64 @@ function initPusher(pusherKey) {
     }
   })
 
+  function removeHostTableTr(rowId) {
+    const tr = document.getElementById(`host-service-tr-${rowId}`)
+    if (tr) {
+      tr.parentNode.removeChild(tr);
+
+      tableNames.forEach(tableName => {
+        const table = document.getElementById(`${tableName}-only-table`);
+        if (table && table.rows.length === 1) {
+          const rw = table.tBodies[0].insertRow(-1);
+          rw.setAttribute('id', 'no-rows');
+          rw.innerHTML = `<td colspan="4">No Services</td>`;
+        }
+      })
+
+    }
+  }
+
+  function addHostTableRow(data) {
+    const { host_service_id, host_id, host_name, service_name, icon, status, last_check } = data;
+    const hostTable = document.getElementById(`${data.status}-table`);
+    if (hostTable) {
+      const trHtml = `
+      <td>
+        <i class="${icon}"></i>
+        ${service_name}
+        <span class="badge bg-secondary clicker-badge" onclick="checkNow(${host_service_id}, '${status}')">
+          Check Now
+        </span>
+      </td>
+      <td>
+        ${last_check}
+      </td>
+      <td>${service_name}</td>
+      `;
+      const tr = hostTable.tBodies[0].insertRow(-1);
+      tr.setAttribute('id', `host-service-tr-${host_service_id}`);
+      tr.innerHTML = trHtml;
+    }
+
+    tableNames.forEach(tableName => {
+      const tbl = document.getElementById(`${tableName}-only-table`);
+      if (tbl && tableName === status) {
+        const emptyRow = document.getElementById(`no-rows`)
+        if (emptyRow) {
+          emptyRow.parentNode.removeChild(emptyRow);
+        }
+        const trHtml = `
+          <td><a href="/admin/host/${host_id}#${tableName}-content">${host_name}</a></td>
+          <td>${service_name}</td>
+          <td><span class="badge bg-success">${status}</span></td>
+          <td></td>
+        `;
+        const tr = tbl.tBodies[0].insertRow(-1);
+        tr.setAttribute('id', `host-service-tr-${host_service_id}`);
+        tr.innerHTML = trHtml;
+      }
+    })
+  }
 
   /*Also listen for events:
   * - service goes up

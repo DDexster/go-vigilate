@@ -52,7 +52,7 @@
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#healthy-content" data-target="" data-toggle="tab"
-             id="healthy-tab" role="tab">Health</a>
+             id="healthy-tab" role="tab">Healthy</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#warning-content" data-target="" data-toggle="tab"

@@ -25,7 +25,7 @@
   <div class="row">
     <div class="col">
 
-      <table class="table table-condensed table-striped">
+      <table class="table table-condensed table-striped" id="pending-only-table">
         <thead>
         <tr>
           <th>Host</th>
@@ -37,7 +37,7 @@
         <tbody>
         {{if len(services) > 0}}
         {{range services}}
-          <tr>
+          <tr id="host-service-tr-{{.ID}}">
             <td><a href="/admin/host/{{.HostID}}#pending-content">{{.HostName}}</a></td>
             <td>{{.Service.ServiceName}}</td>
             <td><span class="badge bg-secondary-dark">{{.Status}}</span></td>
@@ -45,7 +45,7 @@
           </tr>
         {{end}}
         {{else}}
-            <tr>
+            <tr id="no-rows">
               <td colspan="4">No services</td>
             </tr>
         {{end}}
