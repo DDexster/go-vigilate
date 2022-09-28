@@ -1,0 +1,25 @@
+create_table("events") {
+  t.Column("id", "integer", {primary: true})
+  t.Column("host_service_id", "integer", {})
+  t.Column("host_id", "integer", {})
+  t.Column("service_name", "string", {"size":255})
+  t.Column("host_name", "string", {"size":255})
+  t.Column("message", "string", {"size":255})
+}
+
+sql(`
+  CREATE TRIGGER set_timestamp
+    BEFORE UPDATE on events
+    FOR EACH ROW
+  EXECUTE PROCEDURE trigger_set_timestamp();
+`)
+
+add_foreign_key("events", "host_service_id", {"host_services": ["id"]}, {
+  "on_delete": "cascade",
+  "on_update": "cascade",
+})
+
+add_foreign_key("events", "host_id", {"hosts": ["id"]}, {
+  "on_delete": "cascade",
+  "on_update": "cascade",
+})

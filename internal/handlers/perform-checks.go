@@ -87,6 +87,11 @@ func (repo *DBRepo) TestCheck(w http.ResponseWriter, r *http.Request) {
 	// test service
 	newStatus, msg := repo.testServiceHost(h, hs)
 
+	if newStatus != hs.Status {
+		// broadcast service status change
+		repo.pushHostServiceStatusChange(hs, newStatus)
+	}
+
 	// update hs time check and status
 	hs.Status = newStatus
 	hs.LastCheck = time.Now()
@@ -96,8 +101,6 @@ func (repo *DBRepo) TestCheck(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		okay = false
 	}
-
-	// broadcast service status change
 
 	var response jsonResponse
 
