@@ -1,6 +1,64 @@
 const tableNames = ['healthy', 'warning', 'problem', 'pending'];
 
-function initPusher(pusherKey) {
+function removeHostTableTr(rowId) {
+  const tr = document.getElementById(`host-service-tr-${rowId}`)
+  if (tr) {
+    tr.parentNode.removeChild(tr);
+
+    tableNames.forEach(tableName => {
+      const table = document.getElementById(`${tableName}-only-table`);
+      if (table && table.rows.length === 1) {
+        const rw = table.tBodies[0].insertRow(-1);
+        rw.setAttribute('id', 'no-rows');
+        rw.innerHTML = `<td colspan="4">No Services</td>`;
+      }
+    })
+  }
+}
+
+function addHostTableRow(data) {
+  const { host_service_id, host_id, host_name, service_name, icon, status, last_check, last_message } = data;
+  const hostTable = document.getElementById(`${data.status}-table`);
+  if (hostTable) {
+    const trHtml = `
+      <td>
+        <i class="${icon}"></i>
+        ${service_name}
+        <span class="badge bg-secondary clicker-badge" onclick="checkNow(${host_service_id}, '${status}')">
+          Check Now
+        </span>
+      </td>
+      <td>
+        ${last_check}
+      </td>
+      <td>${last_message}</td>
+      `;
+    const tr = hostTable.tBodies[0].insertRow(-1);
+    tr.setAttribute('id', `host-service-tr-${host_service_id}`);
+    tr.innerHTML = trHtml;
+  }
+
+  tableNames.forEach(tableName => {
+    const tbl = document.getElementById(`${tableName}-only-table`);
+    if (tbl && tableName === status) {
+      const emptyRow = document.getElementById(`no-rows`)
+      if (emptyRow) {
+        emptyRow.parentNode.removeChild(emptyRow);
+      }
+      const trHtml = `
+          <td><a href="/admin/host/${host_id}#${tableName}-content">${host_name}</a></td>
+          <td>${service_name}</td>
+          <td><span class="badge bg-success">${status}</span></td>
+          <td>${last_message}</td>
+        `;
+      const tr = tbl.tBodies[0].insertRow(-1);
+      tr.setAttribute('id', `host-service-tr-${host_service_id}`);
+      tr.innerHTML = trHtml;
+    }
+  })
+}
+
+function initPusher(pusherKey, userId) {
   const pusher = new Pusher(pusherKey, {
     authEndPoint: '/pusher/auth',
     wsHost: 'localhost',
@@ -11,6 +69,7 @@ function initPusher(pusherKey) {
   })
 
   const publicChannel = pusher.subscribe('public-channel');
+  const privateChannel = pusher.subscribe(`private-channel-${userId}`)
 
   publicChannel.bind("test-event", (data) => {
     successAlert(data.message);
@@ -20,13 +79,13 @@ function initPusher(pusherKey) {
     const scheduleTable = document.getElementById('schedule-table');
     if (scheduleTable) {
       const {
-        host_service_id,
-        next_run,
-        last_check,
-        schedule,
-        service_name,
-        host_name
-      } = data;
+              host_service_id,
+              next_run,
+              last_check,
+              schedule,
+              service_name,
+              host_name
+            } = data;
 
       const emptyRow = document.getElementById("no-rows");
       if (emptyRow) {
@@ -55,9 +114,7 @@ function initPusher(pusherKey) {
   publicChannel.bind("schedule-removed-event", (data) => {
     const scheduleTable = document.getElementById('schedule-table');
     if (scheduleTable) {
-      const {
-        host_service_id,
-      } = data;
+      const { host_service_id } = data;
 
       const existRow = document.getElementById(`schedule-${host_service_id}`)
       if (existRow) {
@@ -114,7 +171,7 @@ function initPusher(pusherKey) {
 
     //  update tables if they exist
     addHostTableRow(data);
-  //  Update Status pages
+    //  Update Status pages
   })
 
   publicChannel.bind("hs-count-changed", (data) => {
@@ -139,69 +196,11 @@ function initPusher(pusherKey) {
     }
   })
 
-  function removeHostTableTr(rowId) {
-    const tr = document.getElementById(`host-service-tr-${rowId}`)
-    if (tr) {
-      tr.parentNode.removeChild(tr);
-
-      tableNames.forEach(tableName => {
-        const table = document.getElementById(`${tableName}-only-table`);
-        if (table && table.rows.length === 1) {
-          const rw = table.tBodies[0].insertRow(-1);
-          rw.setAttribute('id', 'no-rows');
-          rw.innerHTML = `<td colspan="4">No Services</td>`;
-        }
-      })
-
-    }
-  }
-
-  function addHostTableRow(data) {
-    const { host_service_id, host_id, host_name, service_name, icon, status, last_check, last_message } = data;
-    const hostTable = document.getElementById(`${data.status}-table`);
-    if (hostTable) {
-      const trHtml = `
-      <td>
-        <i class="${icon}"></i>
-        ${service_name}
-        <span class="badge bg-secondary clicker-badge" onclick="checkNow(${host_service_id}, '${status}')">
-          Check Now
-        </span>
-      </td>
-      <td>
-        ${last_check}
-      </td>
-      <td>${last_message}</td>
-      `;
-      const tr = hostTable.tBodies[0].insertRow(-1);
-      tr.setAttribute('id', `host-service-tr-${host_service_id}`);
-      tr.innerHTML = trHtml;
-    }
-
-    tableNames.forEach(tableName => {
-      const tbl = document.getElementById(`${tableName}-only-table`);
-      if (tbl && tableName === status) {
-        const emptyRow = document.getElementById(`no-rows`)
-        if (emptyRow) {
-          emptyRow.parentNode.removeChild(emptyRow);
-        }
-        const trHtml = `
-          <td><a href="/admin/host/${host_id}#${tableName}-content">${host_name}</a></td>
-          <td>${service_name}</td>
-          <td><span class="badge bg-success">${status}</span></td>
-          <td>${last_message}</td>
-        `;
-        const tr = tbl.tBodies[0].insertRow(-1);
-        tr.setAttribute('id', `host-service-tr-${host_service_id}`);
-        tr.innerHTML = trHtml;
-      }
+  //  PRIVATE CHANNEL
+  privateChannel.bind("private-message", (data) => {
+    attention.alert({
+      html: data.message,
+      icon: 'success'
     })
-  }
-
-  /*Also listen for events:
-  * - service goes up
-  * - service goes down
-  * - service status changed
-  * - monitoring is turned off
-  * */
+  })
 }

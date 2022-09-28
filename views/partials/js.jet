@@ -3,7 +3,8 @@
 
 <script>
   const pusherKey = '{{.PreferenceMap["pusher-key"]}}';
-  initPusher(pusherKey);
+  const userID = '{{.User.ID}}';
+  initPusher(pusherKey, userID);
 
   let attention = Prompt();
 
