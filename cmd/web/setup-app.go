@@ -149,7 +149,7 @@ func setupApp() (*string, error) {
 
 	app.Scheduler = scheduler
 
-	if preferenceMap["monitoring_live"] == "1" {
+	if app.PreferenceMap["monitoring_live"] == "1" {
 		go handlers.Repo.StartMonitoring()
 	}
 
