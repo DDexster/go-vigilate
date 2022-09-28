@@ -51,6 +51,7 @@ func (repo *DBRepo) ScheduledCheck(hsID int) {
 	statusChanged := hs.Status != newStatus
 	hs.Status = newStatus
 	hs.LastCheck = time.Now()
+	hs.LastMessage = msg
 
 	err = repo.DB.UpdateHostService(hs)
 	if err != nil {
@@ -87,14 +88,15 @@ func (repo *DBRepo) TestCheck(w http.ResponseWriter, r *http.Request) {
 	// test service
 	newStatus, msg := repo.testServiceHost(h, hs)
 
-	if newStatus != hs.Status {
-		// broadcast service status change
-		repo.pushHostServiceStatusChange(hs, newStatus)
-	}
+	//if newStatus != hs.Status {
+	//	// broadcast service status change
+	//	repo.pushHostServiceStatusChange(hs, newStatus)
+	//}
 
 	// update hs time check and status
 	hs.Status = newStatus
 	hs.LastCheck = time.Now()
+	hs.LastMessage = msg
 
 	err = repo.DB.UpdateHostService(hs)
 	if err != nil {
@@ -139,6 +141,18 @@ func (repo *DBRepo) testServiceHost(h models.Host, hs models.HostService) (strin
 
 	if hs.Status != newStatus {
 		repo.pushHostServiceStatusChange(hs, newStatus)
+		event := models.Event{
+			EventType:     newStatus,
+			HostServiceID: hs.ID,
+			HostID:        hs.HostID,
+			ServiceName:   hs.Service.ServiceName,
+			HostName:      h.HostName,
+			Message:       msg,
+		}
+		err := repo.DB.InsertEvent(event)
+		if err != nil {
+			log.Println(err)
+		}
 
 		// TODO send email or sms if appropriate
 	}
@@ -200,6 +214,7 @@ func (repo *DBRepo) pushHostServiceStatusChange(hs models.HostService, newStatus
 	data["icon"] = hs.Service.Icon
 	data["status"] = newStatus
 	data["last_check"] = helpers.FormatDateWithLayout(time.Now(), helpers.DATE_FORMAT)
+	data["last_message"] = hs.LastMessage
 	data["message"] = fmt.Sprintf("%s on %s reports %s", hs.Service.ServiceName, hs.HostName, newStatus)
 
 	repo.broadcastMessage("public-channel", "host-service-status-change", data)

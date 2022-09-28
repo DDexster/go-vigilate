@@ -41,7 +41,7 @@
             <td><a href="/admin/host/{{.HostID}}#problem-content">{{.HostName}}</a></td>
             <td>{{.Service.ServiceName}}</td>
             <td><span class="badge bg-danger">{{.Status}}</span></td>
-            <td></td>
+            <td>{{.LastMessage}}</td>
           </tr>
         {{end}}
         {{else}}

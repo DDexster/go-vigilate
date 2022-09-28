@@ -157,7 +157,7 @@ function initPusher(pusherKey) {
   }
 
   function addHostTableRow(data) {
-    const { host_service_id, host_id, host_name, service_name, icon, status, last_check } = data;
+    const { host_service_id, host_id, host_name, service_name, icon, status, last_check, last_message } = data;
     const hostTable = document.getElementById(`${data.status}-table`);
     if (hostTable) {
       const trHtml = `
@@ -171,7 +171,7 @@ function initPusher(pusherKey) {
       <td>
         ${last_check}
       </td>
-      <td>${service_name}</td>
+      <td>${last_message}</td>
       `;
       const tr = hostTable.tBodies[0].insertRow(-1);
       tr.setAttribute('id', `host-service-tr-${host_service_id}`);
@@ -189,7 +189,7 @@ function initPusher(pusherKey) {
           <td><a href="/admin/host/${host_id}#${tableName}-content">${host_name}</a></td>
           <td>${service_name}</td>
           <td><span class="badge bg-success">${status}</span></td>
-          <td></td>
+          <td>${last_message}</td>
         `;
         const tr = tbl.tBodies[0].insertRow(-1);
         tr.setAttribute('id', `host-service-tr-${host_service_id}`);
