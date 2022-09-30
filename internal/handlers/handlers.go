@@ -47,15 +47,17 @@ func (repo *DBRepo) GetServiceCounts(hosts *[]models.Host) models.ServiceStatusC
 		for _, h := range *hosts {
 			if h.Active == 1 {
 				for _, hs := range h.HostServices {
-					switch hs.Status {
-					case "pending":
-						counts.Pending += 1
-					case "healthy":
-						counts.Healthy += 1
-					case "problem":
-						counts.Problem += 1
-					case "warning":
-						counts.Warning += 1
+					if hs.Active == 1 {
+						switch hs.Status {
+						case "pending":
+							counts.Pending += 1
+						case "healthy":
+							counts.Healthy += 1
+						case "problem":
+							counts.Problem += 1
+						case "warning":
+							counts.Warning += 1
+						}
 					}
 				}
 			}
